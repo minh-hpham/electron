@@ -1,0 +1,4 @@
+zerorpc
+pyinstaller
+pypiwin32 # for pyinstaller
+gevent
