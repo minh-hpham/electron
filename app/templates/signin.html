@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Reminiscent</title>
+        <link rel='stylesheet prefetch' href='https://fonts.googleapis.com/css?family=Roboto:400,100,300,500,700,900'>
+        <link rel="stylesheet" href="assets/css/style.css">
+    </head>
+
+    <body>
+        <div class="body"></div>
+        <div class="container">
+            <div class="info">
+                <h1>Reminiscent Email</h1><span>Author @ <a href="https://github.com/minh-hpham/">Minh Pham</a></span>
+            </div>
+        </div>
+        <div class="form">
+            <div class="letter"><img src="images/letter.PNG"/></div>
+            <br>
+            <p class="message" style="display: none;">Please authorize the app with <a id="authUrl" href="#">this url</a></p>
+            <input style="display: none;" id="user-code" type="text" name="user-code" placeholder="Enter the access code">
+            <br>
+            <form class="login-form">
+                <button class="loginBtn loginBtn--google" id="signin-btn" type="button" onclick="signin()">
+                    Sign in with Google Account
+                </button>
+
+            </form>
+        </div>
+        <script>require('./renderer.js')</script>
+        <script src = "assets/js/grant_access.js" ></script>
+        <script src="assets/js/prefixfree.min.js"></script>
+    </body>
+
+</html>
