@@ -1,12 +1,12 @@
 const electron = require('electron');
-const path = require('path')
+const path = require('path');
 var fs = require('fs');
 
-var APP_PATH = electron.remote.getGlobal('APP_PATH')
+var APP_PATH = electron.remote.getGlobal('APP_PATH');
 
 const PY_DIST_FOLDER = 'pycalcdist'
 const PY_FOLDER = 'pycalc'
-const PY_MODULE = 'proto_v2' // without .py suffix
+const PY_MODULE = 'readmail' // without .py suffix
 
 let pyProc = null
 
@@ -30,32 +30,20 @@ const createPyProc = () => {
 
   var dataString = ''
   if (!guessPackaged()) {
-      var spawn = require("child_process").spawn; 
+      var execFile = require("child_process").execFile;
       var mbox_path = electron.remote.getGlobal('sharedObject').MBOX_PATH;
       var save_path = electron.remote.getGlobal('sharedObject').TRAIN_FILE;
-      pyProc = spawn('python',[script, mbox_path,save_path]);
       
-//      pyProc.stdout.on('data', function(data) {
-//          dataString += data.toString();
-//      });
-//      
-//      pyProc.stdout.on('end', function() {
-//          console.log('Emails are: \n' + dataString);
-//      });
-      
-  }
-
-  if (pyProc != null) {
-
-      pyProc.stdout.on('data',function(data) {
-          console.log(data.toString());
-          // console.log(JSON.parse(JSON.stringify(data)));   
-      })
-      pyProc.stdout.on('end', function() {
-          console.log('DONE');
+      pyProc = execFile('python',[script, mbox_path,save_path], (error,stdout,stderr) => {
+         if (error) {
+             console.error("Error when run file:",script,stderr);
+             throw error;
+         } else {
+             console.log("Train file can be found at",save_path);
+             var html_path = path.join(__dirname,"templates","email"+".html")
+             location.assign(html_path);
+         }
       });
-  } else {
-      console.log('child process failed to run process')
   }
 }
 

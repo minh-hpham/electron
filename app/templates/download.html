@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Reminiscent</title>
+        <link rel='stylesheet prefetch' href='https://fonts.googleapis.com/css?family=Roboto:400,100,300,500,700,900'>
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <link rel="stylesheet" href="../assets/css/style.css">
+        <style>
+            .form {
+                max-width: 450px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="body"></div>
+        <div class="container">
+            <div class="info">
+                <h1>Reminiscent Email</h1><span>Author @ <a href="https://github.com/minh-hpham/">Minh Pham</a></span>
+            </div>
+        </div>
+        <div class="form">
+            <div class="letter"><img src="../assets/images/letter.PNG"/></div>
+            <br>
+
+            <div class="w3-show-inline-block">
+            <div class="w3-bar">
+                <a id="downloadFile" href="https://takeout.google.com/settings/takeout" class="w3-btn w3-red">Download your gmail</a>
+                <a id="selectFile" class="w3-btn w3-green">Open gmail directory</a>
+            </div>
+            </div>
+
+
+        </div>
+        <script>
+            const electron = require('electron');
+            const remote = electron.remote;
+            const shell = electron.shell;
+            const mainProcess =  remote.require('./main');
+            var fs = require('fs');
+
+            document.getElementById('selectFile').addEventListener('click', _ => {
+                create_app_info();
+            })
+            document.getElementById('downloadFile').addEventListener('click',function(event) {
+                event.preventDefault();
+                shell.openExternal(this.href);
+            });
+
+            function create_app_info() {
+                remote.dialog.showOpenDialog(remote.getCurrentWindow(),{
+                        properties : ['openFile'],
+                        filters : [ {name: 'Custom File Type', extensions: ['mbox']}]
+                    },function(filePaths) {
+                        if (filePaths === undefined) {
+                            console.log("No file selected");
+                            return
+                        } else {
+                            try {
+                                fs.mkdirSync(remote.getGlobal('TOKEN_DIR'));
+                            } catch (err) {
+                                if (err.code != 'EEXIST') {
+                                    throw err;
+                                }
+                            }
+                            remote.getGlobal('sharedObject').MBOX_PATH = filePaths[0];
+                            fs.writeFile(remote.getGlobal('sharedObject').APP_INFO_PATH,
+                                JSON.stringify({mbox : filePaths[0]}),
+                                (err) => {
+                                    if (err) throw err;
+                                    else {
+                                        location.assign('processing.html');
+                                    }
+                                }
+                            )
+                        }
+                    }
+                )
+            }
+        </script>
+    </body>
+
+</html>

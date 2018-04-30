@@ -12,14 +12,15 @@ global.APP_PATH = __dirname
 
 var fs = require('fs');
 
-TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
-    process.env.USERPROFILE) + '/.reminiscent/';
+global.TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
+    process.env.USERPROFILE) + '/reminiscent/';
 
 global.sharedObject = {
-    TOKEN_PATH : TOKEN_DIR + 'gmail-access-token.json',
+    TOKEN_PATH : path.join(TOKEN_DIR, 'gmail-access-token.json'),
+    CLIENT_PATH : path.join(__dirname,'assets','credentials', 'client_secret.json'),
     APP_INFO_PATH : TOKEN_DIR + 'appinfo.json',
     TRAIN_FILE : TOKEN_DIR + 'train.json',
-    TEST_FILE : TOKEN_DIR + 'test.json',
+    USER_VERIFY_FILE : TOKEN_DIR + 'user_verify.json',
     MBOX_PATH : null
 }
 
@@ -31,31 +32,39 @@ global.sharedObject = {
 let mainWindow = null
 
 const createWindow = () => {
-  mainWindow = new BrowserWindow({
-    show : false,
-    center : true,
-    width: 1024, 
-    height: 600,
-    icon : path.join(__dirname, 'assets','icons','png','64x64.png')
-  })
+    mainWindow = new BrowserWindow({
+        show : false,
+        center : true,
+        width: 1024,
+        height: 600,
+        icon : path.join(__dirname, 'assets','icons','png','64x64.png')
+    })
+    var html_file = ""
+    if (fs.existsSync(global.sharedObject.TOKEN_PATH)) {
+        if (fs.existsSync(global.sharedObject.APP_INFO_PATH) && fs.existsSync(global.sharedObject.TRAIN_FILE)) {
+            html_file = "email.html";
+        } else {
+            html_file = "download.html";
+        }
+    } else {
+        html_file = "signin.html";
+    }
 
-  var html_file = (fs.existsSync(global.sharedObject.APP_INFO_PATH)) ? "email.html" : "index.html";
-  
-  mainWindow.loadURL(require('url').format({
-    pathname: path.join(__dirname, 'templates',html_file),
-    protocol: 'file:',
-    slashes: true
-  }))
+    mainWindow.loadURL(require('url').format({
+        pathname: path.join(__dirname, 'templates',html_file),
+        protocol: 'file:',
+        slashes: true
+    }))
 
-  mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 
-  mainWindow.once('ready-to-show', () => {
+    mainWindow.once('ready-to-show', () => {
         mainWindow.show();
         mainWindow.focus();
-  })
-  mainWindow.on('closed', () => {
-    mainWindow = null
-  })
+    })
+    mainWindow.on('closed', () => {
+        mainWindow = null
+    })
 }
 
 app.on('ready', createWindow)

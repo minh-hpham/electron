@@ -1,17 +1,15 @@
-var $ = require('jQuery');
+const electron = require('electron');
+const remote = electron.remote;
+const shell = electron.shell;
 
+var $ = require('jQuery');
 var fs = require('fs');
 var path = require('path');
-
-var google = require('googleapis');
-//var googleAuth = require('google-auth-library');
+var {google} = require('googleapis');
 
 var SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
-
-var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
-    process.env.USERPROFILE) + '/.credentials/';
-var TOKEN_PATH = TOKEN_DIR + 'gmail-nodejs-quickstart.json';
-
+var TOKEN_DIR = remote.getGlobal('TOKEN_DIR');
+var TOKEN_PATH = remote.getGlobal('sharedObject').TOKEN_PATH;
 
 /**
 * Open external link
@@ -28,7 +26,7 @@ $("#authUrl").on('click',function(event) {
 
 // start when User clicks on Sign In with Google Account
 function signin() {
-    var jsonPath = path.join(__dirname, 'assets', 'credentials','client_secret.json');
+    var jsonPath = remote.getGlobal('sharedObject').CLIENT_PATH;
     fs.readFile(jsonPath, function processClientSecrets(err, content) {
         if (err) {
             console.log('Error loading client secret file: ' + err);
@@ -41,10 +39,10 @@ function signin() {
 }
 
 /**
-* Go to the main page
+* Go to the download mbox page
 */
 function changeView() {
-    var htmlPath = path.join(__dirname, 'email.html');
+    var htmlPath =  path.join(__dirname,"download"+".html");
     location.assign(htmlPath);
 }
 

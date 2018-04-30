@@ -87,16 +87,16 @@ def get_email_from_sender(file, senders):
             subject = decode_email(email['subject'])
             
             body = get_message(email)
-            if "text/plain" in body:
-                snippet = body["text/plain"][:200]
-            else:
-                snippet = ""
+#            if "text/plain" in body:
+#                snippet = body["text/plain"][:200]
+#            else:
+#                snippet = ""
             data[labelIds] = {
                 "subject" : subject,
                 "from" : sender,
                 "to" : email['Delivered-To'],
                 "date" : email['Date'],
-                "snippet" : snippet,
+#                "snippet" : snippet,
                 "body": body
             }
     return data
@@ -104,11 +104,9 @@ def get_email_from_sender(file, senders):
 
 def main():
     try:
-        print(sys.argv[1])
-        print(sys.argv[2])
         mymail = mailbox.mbox(sys.argv[1])        
         # 1st round
-        unwantedlist = ["amazon","BestBuy","ebay","netflix","facebook","tencent","alibaba","expedia","baidu","order of","return of","no-reply","noreply","mailing list","mailing_list","license","customer service","request","account","Thanks for your interest in","Thanks for applying","Thanks for submitting","Application has been submitted","Please confirm your","receipt","please read"]
+        unwantedlist = ["mongodb","amazon","BestBuy","ebay","netflix","facebook","tencent","alibaba","expedia","baidu","order of","return of","no-reply","noreply","mailing list","mailing_list","license","customer service","request","account","Thanks for your interest in","Thanks for applying","Thanks for submitting","Application has been submitted","Please confirm your","receipt","please read"]
         senders = misra_gries(mymail,10,unwantedlist)
         # 2nd round
         data = get_email_from_sender(mymail, senders)

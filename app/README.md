@@ -15,7 +15,8 @@ node and npm
 ## Update/Additions - install with scripts
 ```
 # for npm
-sudo npm install --unsafe-perm=true --allow-root -r requirements
+sudo npm install --unsafe-perm=true --allow-root -r npm_requirements.txt
+
 
 # for python
 pip install -r requirements

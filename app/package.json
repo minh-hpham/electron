@@ -17,6 +17,8 @@
   "license": "MIT",
   "dependencies": {
     "electron-version": "^1.1.2",
+    "googleapis": "^29.0.0",
+    "jquery": "^3.3.1",
     "zerorpc": "git+https://github.com/fyears/zerorpc-node.git"
   },
   "devDependencies": {
