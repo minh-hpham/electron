@@ -1,6 +1,9 @@
 const electron = require('electron');
 const remote = electron.remote;
+const BrowserWindow = remote.getCurrentWindow()
 const path = require('path')
+const ipc = electron.ipcRenderer
+
 const $ = require('jQuery');
 const TRAIN_FILE = remote.getGlobal('sharedObject').TRAIN_FILE;
 
@@ -8,25 +11,38 @@ const TRAIN_FILE = remote.getGlobal('sharedObject').TRAIN_FILE;
 var fs = require('fs');
 
 var likelist = []
-var unlikelist = []
+var dislikelist = []
 var count_inbox = 0;
 
-let win = remote.getCurrentWindow();
-win.on('close', function() {
+
+const update_train_file = () => {
     var execFile = require("child_process").execFile;
     var APP_PATH = remote.getGlobal('APP_PATH');
     var USER_VERIFY_FILE = remote.getGlobal('sharedObject').USER_VERIFY_FILE;
     var script = path.join(APP_PATH, "pycalc", "modifymail" + '.py')
-
-    var pyProc = execFile('python',[script, TRAIN_FILE, USER_VERIFY_FILE, likelist, unlikelist], (error,stdout,stderr) => {
+    var pyProc = execFile('python',[script, TRAIN_FILE, USER_VERIFY_FILE, likelist, dislikelist], (error,stdout,stderr) => {
          if (error) {
              console.error("Error when run file:",script,stderr);
              throw error;
          }
-        win.close();
+        console.log(script);
 
+//         var win = remote.getCurrentWindow()
+//         win.close()
+         ipc.send('ready-to-close-window',script);
       });
-});
+}
+
+BrowserWindow.on('close',function(event) {
+    event.preventDefault()
+    update_train_file()
+    return false;
+})
+ipc.on('user-close-window', update_train_file);
+//let win = remote.getCurrentWindow();
+//win.on('close', function() {
+//
+//});
 
 
 function view() {
@@ -72,7 +88,7 @@ function display_messages(messages) {
             + '<br>'
             +'<h5 class="w3-opacity">Subject: '+subject+'</h5>'
             +  '<h4><i class="fa fa-clock-o"></i> From '+sender+'</h4>'
-            +  '<a class="w3-button w3-light-grey" onclick="likeMail(\''+message_id+ '\');"> Like <i class="w3-margin-left fa "></i></a>'
+            +  '<a style="text-decoration: none;" class="w3-button w3-light-grey" onclick="likeMail(\''+message_id+ '\');"> Like <i class="w3-margin-left fa "></i></a>'
             + '<a class="w3-button w3-light-grey" onclick="UnLikeMail(\''+message_id+ '\');"> Unlike <i class="w3-margin-left fa "></i></a>'
             + '<hr>'
             +  message.body["text/html"]
@@ -92,14 +108,16 @@ function UnLikeMail(message_id) {
     $('#myBtn').text("Inbox (" + count_inbox + ")");
     $( "#nav-"+message_id ).remove();
     $( "#"+message_id ).remove();
-    unlikelist.push(message_id);
+    dislikelist.push(message_id);
 }
 
 function likeMail(message_id) {
-    likelist.push(message_id);
-    var a1 = $('#'+message_id+' > a:nth-child(1)');
-    a1.removeClass("w3-button w3-light-grey").addClass("w3-button w3-light-red");
-    $('#'+message_id+' > a:nth-child(2)').remove();
+    var a1 = document.getElementById(message_id).getElementsByTagName('a')[0]
+    if (a1.classList.contains("w3-red") == false) {
+        likelist.push(message_id);
+        a1.className = a1.className.replace(" w3-light-grey"," w3-red");
+        document.getElementById(message_id).getElementsByTagName('a')[1].remove();
+    }
 }
 
 

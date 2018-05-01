@@ -7,6 +7,12 @@ const app = electron.app
 const BrowserWindow = electron.BrowserWindow
 const path = require('path')
 
+const userDataPath = (electron.app || electron.remote.app).getPath('userData');
+
+
+const ipc = electron.ipcMain
+
+
 global.APP_PATH = __dirname
 
 
@@ -20,7 +26,7 @@ global.sharedObject = {
     CLIENT_PATH : path.join(__dirname,'assets','credentials', 'client_secret.json'),
     APP_INFO_PATH : TOKEN_DIR + 'appinfo.json',
     TRAIN_FILE : TOKEN_DIR + 'train.json',
-    USER_VERIFY_FILE : TOKEN_DIR + 'user_verify.json',
+    USER_PREFERENCE_FILE : TOKEN_DIR + 'user_verify.json',
     MBOX_PATH : null
 }
 
@@ -42,6 +48,19 @@ const createWindow = () => {
     var html_file = ""
     if (fs.existsSync(global.sharedObject.TOKEN_PATH)) {
         if (fs.existsSync(global.sharedObject.APP_INFO_PATH) && fs.existsSync(global.sharedObject.TRAIN_FILE)) {
+            if (fs.existsSync(global.sharedObject.USER_PREFERENCE_FILE)) {
+                // update train.json with the current user's preference
+                var execFile = require("child_process").execFile;
+                var USER_PREFERENCE_FILE = global.sharedObject.USER_PREFERENCE_FILE;
+                var TRAIN_FILE = global.sharedObject.TRAIN_FILE;
+                var script = path.join(APP_PATH, "pycalc", "loadmore" + '.py')
+                var pyProc = execFile('python',[script, TRAIN_FILE, USER_PREFERENCE_FILE], (error,stdout,stderr) => {
+                     if (error) {
+                         console.error("Error when run file:",script,stderr);
+                         throw error;
+                     }
+                  });
+            }
             html_file = "email.html";
         } else {
             html_file = "download.html";
@@ -62,7 +81,12 @@ const createWindow = () => {
         mainWindow.show();
         mainWindow.focus();
     })
-    mainWindow.on('closed', () => {
+//    mainWindow.on('close', (event) => {
+//        event.preventDefault();
+//        event.sender.send('user-close-window');
+//
+//    })
+    mainWindow.on('closed',function () {
         mainWindow = null
     })
 }
@@ -81,6 +105,9 @@ app.on('activate', () => {
   }
 })
 
+ipc.on('ready-to-close-window', function (arg) {
+    console.log("end")
+})
 /*************************************************************
  * helper functions to modify files
  *************************************************************/

@@ -1,4 +1,4 @@
-zerorpc
+--upgrade google-api-python-client
+
 pyinstaller
 pypiwin32 # for pyinstaller
-gevent
