@@ -1,6 +1,5 @@
 const electron = require('electron');
 const remote = electron.remote;
-const BrowserWindow = remote.getCurrentWindow()
 const path = require('path')
 const ipc = electron.ipcRenderer
 
@@ -18,31 +17,22 @@ var count_inbox = 0;
 const update_train_file = () => {
     var execFile = require("child_process").execFile;
     var APP_PATH = remote.getGlobal('APP_PATH');
-    var USER_VERIFY_FILE = remote.getGlobal('sharedObject').USER_VERIFY_FILE;
+    var USER_PREFERENCE_FILE = remote.getGlobal('sharedObject').USER_PREFERENCE_FILE;
     var script = path.join(APP_PATH, "pycalc", "modifymail" + '.py')
-    var pyProc = execFile('python',[script, TRAIN_FILE, USER_VERIFY_FILE, likelist, dislikelist], (error,stdout,stderr) => {
+
+    var pyProc = execFile('python',[script, JSON.stringify(likelist), JSON.stringify(dislikelist)], (error,stdout,stderr) => {
          if (error) {
              console.error("Error when run file:",script,stderr);
+             ipc.send('ready-to-close-window',stderr);
              throw error;
+         } else {
+             ipc.send('ready-to-close-window',"SUCCEED");
          }
-        console.log(script);
 
-//         var win = remote.getCurrentWindow()
-//         win.close()
-         ipc.send('ready-to-close-window',script);
       });
 }
 
-BrowserWindow.on('close',function(event) {
-    event.preventDefault()
-    update_train_file()
-    return false;
-})
 ipc.on('user-close-window', update_train_file);
-//let win = remote.getCurrentWindow();
-//win.on('close', function() {
-//
-//});
 
 
 function view() {
@@ -88,7 +78,7 @@ function display_messages(messages) {
             + '<br>'
             +'<h5 class="w3-opacity">Subject: '+subject+'</h5>'
             +  '<h4><i class="fa fa-clock-o"></i> From '+sender+'</h4>'
-            +  '<a style="text-decoration: none;" class="w3-button w3-light-grey" onclick="likeMail(\''+message_id+ '\');"> Like <i class="w3-margin-left fa "></i></a>'
+            +  '<a class="w3-button w3-light-grey" onclick="likeMail(\''+message_id+ '\');"> Like <i class="w3-margin-left fa "></i></a>'
             + '<a class="w3-button w3-light-grey" onclick="UnLikeMail(\''+message_id+ '\');"> Unlike <i class="w3-margin-left fa "></i></a>'
             + '<hr>'
             +  message.body["text/html"]

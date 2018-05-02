@@ -1,20 +1,87 @@
 
-import sys, json
+
 
 """Get a list of Messages from the user's mailbox.
 """
-
 from apiclient import errors
-from __future__ import print_function
 from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
 import base64
 import email
-from apiclient import errors
+import os, sys, json, datetime
 
-def GetMessage(service, user_id, msg_id):
+try:
+    import argparse
+    flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+except ImportError:
+    flags = None
+
+def _search_message_bodies(bodies,part):
+    mimeType = part["mimeType"]
+    if mimeType.startswith('multipart/'):
+        part = part["parts"]
+        if mimeType == 'multipart/related': # embedded image
+            # just search the metadata, which is the first part of this part
+            _search_message_bodies(bodies, part[0])
+            return
+        elif mimeType == 'multipart/alternative':
+            # all parts are candidates and the latest is the best
+            for subpart in part:
+                _search_message_bodies(bodies, subpart)
+        elif mimeType in ('multipart/report',  'multipart/signed'):
+            try:
+                subpart = part[0]
+            except IndexError:
+                return
+            else:
+                _search_message_bodies(bodies, subpart)
+                return
+        elif mimeType == 'multipart/signed':
+            # cannot handle this
+            return
+        else:
+            # unknown types are handled as 'multipart/mixed'
+            for subpart in part:
+                tmp_bodies = dict()
+                _search_message_bodies(tmp_bodies, subpart)
+                for k,v in tmp_bodies.items():
+                    # if not an attachment, initiate value if not already found
+                    if not ("attachmentId" in subpart["body"]):
+                        bodies.setdefault(k, v)
+            return
+    else:
+        # find charset
+        if part["filename"]:
+            return
+        charset = None
+        content_type = None
+        for header in part['headers']:
+            if header['name'] == "Content-Type":
+                content_type = header['value'].split(";",1)[0]
+                if "charset=" in header['value']:
+                    charset = header['value'].split("charset=",1)[1]
+
+        if charset is None:
+            try:
+                bodies[content_type] = base64.urlsafe_b64decode(part['body']['data']).decode()
+            except Exception as e:
+                print(e)
+        else:
+            try:
+                bodies[content_type] = base64.urlsafe_b64decode(part['body']['data'].encode(charset)).decode(charset)
+            except Exception as e:
+                print(e)
+        return
+
+
+def search_message_bodies(mail):
+    bodies = dict()
+    _search_message_bodies(bodies,mail['payload'])
+    return bodies
+
+def GetMessage(service, msg_id, user_id='me'):
     """Get a Message with given ID.
 
     Args:
@@ -29,49 +96,46 @@ def GetMessage(service, user_id, msg_id):
     try:
         message = service.users().messages().get(userId=user_id, id=msg_id).execute()
 
-        print 'Message snippet: %s' % message['snippet']
-
         return message
-    except errors.HttpError, error:
-        print 'An error occurred: %s' % error
-
-
-def GetMimeMessage(service, user_id, msg_id):
-    """Get a Message and use it to create a MIME Message.
-
-    Args:
-    service: Authorized Gmail API service instance.
-    user_id: User's email address. The special value "me"
-    can be used to indicate the authenticated user.
-    msg_id: The ID of the Message required.
-
-    Returns:
-    A MIME Message, consisting of data from Message.
-    """
-    try:
-        message = service.users().messages().get(userId=user_id, id=msg_id,
-                                                 format='raw').execute()
-
-        print 'Message snippet: %s' % message['snippet']
-
-        msg_str = base64.urlsafe_b64decode(message['raw'].encode('ASCII'))
-
-        mime_msg = email.message_from_string(msg_str)
-
-        return mime_msg
-    except errors.HttpError, error:
-        print 'An error occurred: %s' % error
+    except errors.HttpError as error:
+        print('An error occurred: %s' % error)
 
 
 def get_service():
-    # Setup the Gmail API
     SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
-    store = file.Storage('credentials.json')
-    creds = store.get()
-    if not creds or creds.invalid:
-        flow = client.flow_from_clientsecrets('../assets/credentials/client_secret.json', SCOPES)
-        creds = tools.run_flow(flow, store)
-    service = build('gmail', 'v1', http=creds.authorize(Http()))
+
+
+    home_dir = os.path.expanduser('~')
+    credential_dir = os.path.join(home_dir,'reminiscent','credentials')
+
+    if not os.path.exists(credential_dir):
+        os.makedirs(credential_dir)
+    credential_path = os.path.join(credential_dir,
+                                             'credentials.json')
+    dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    CLIENT_SECRET_FILE = os.path.join(dir_path, "assets", 'credentials','client_secret.json')
+
+#    store = file.Storage(credential_path)
+#    credentials = store.get()
+#
+#    if not credentials or credentials.invalid:
+#        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+#        flow.user_agent = "Reminiscent Email"
+#        if flags:
+#             credentials = tools.run_flow(flow, store, flags)
+#        else: # Needed only for compatibility with Python 2.6
+#             credentials = tools.run(flow, store)
+
+
+#    if not os.path.isfile(credentials):
+#        open(credentials, 'w+')
+    store = file.Storage(credential_path)
+    credentials = store.get()
+    if not credentials or credentials.invalid:
+        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+#        flow.redirect_uri = 'http://localhost:5580'
+        credentials = tools.run_flow(flow, store)
+    service = build('gmail', 'v1', http=credentials.authorize(Http()))
     return service
 
 
@@ -92,6 +156,7 @@ def ListMessagesMatchingQuery(service, user_id, query=''):
     """
     try:
         response = service.users().messages().list(userId=user_id,
+                                                   maxResults=10,
                                                    q=query).execute()
         messages = []
         if 'messages' in response:
@@ -104,39 +169,83 @@ def ListMessagesMatchingQuery(service, user_id, query=''):
             messages.extend(response['messages'])
 
         return messages
-    except errors.HttpError, error:
-        print 'An error occurred: %s' % error
+    except errors.HttpError as error:
+        print('An error occurred: %s' % error)
 
 
 def get_new_mail(file):
     service = get_service()
     data = json.load(open(file))
-
     # generate query
     # e.g {subject:Yuki from:Trang} after:2016/04/15 -{subject:Na subject:MSF}
     date = data.get("last_query") # if date is None, do sth
-    liked_senders = ''.join(data.get("like",{}).get("senders",[]))
-    liked_subjects = ''.join(data.get("like",{}).get("subjects",[]))
-    disliked_senders = ''.join(data.get("dislike",{}).get("senders",[]))
-    disliked_subjects = ''.join(data.get("dislike",{}).get("subjects",[]))
+    liked_senders = ' '.join(data.get("like",{}).get("senders",[]))
+    liked_subjects = ' '.join(data.get("like",{}).get("subjects",[]))
+    disliked_senders = ' '.join(data.get("dislike",{}).get("senders",[]))
+    disliked_subjects = ' '.join(data.get("dislike",{}).get("subjects",[]))
 
-    query = 'after:%s {from:{%s} subject:{%s}} -{from:{%s} subject:{%s}}'
-    % (date, liked_senders, liked_subjects,disliked_senders,disliked_subjects)
+    # update last query
+    data["last_query"] = datetime.datetime.today().strftime('%Y/%m/%d')
+    with open(file, 'w') as outfile:
+        json.dump(data, outfile)
+
+    query = 'after:%s {from:{%s} subject:{%s}} -{from:{%s} subject:{%s}}' % (date, liked_senders, liked_subjects,disliked_senders,disliked_subjects)
 
     # get list of messages with query
     messages = ListMessagesMatchingQuery(service,'me',query)
     # get each message
+    mails = {}
 
+    for response in messages:
+        message_id = response["id"]
+        message = GetMessage(service,message_id)
+        headers = message["payload"]["headers"]
+
+        _subject = ""
+        _from = ""
+        _to = ""
+        _date = ""
+
+        for part in headers:
+            if part["name"] == "From":
+                _from = part["value"]
+            elif part["name"] == "Delivered-To":
+                _to = part["value"]
+            elif part["name"] == "Subject":
+                _subject = part["value"]
+            elif part["name"] == "Date":
+                _date = part["value"]
+
+        _body = search_message_bodies(message)
+
+        mails[message_id] = {
+            "subject" : _subject,
+            "from" : _from,
+            "to" : _to,
+            "date" : _date,
+            "body" : _body
+        }
+
+    return mails
 
 def main():
-    newmail = get_new_mail(sys.argv[2]) # user preference
+    try:
+        home_dir = os.path.expanduser('~')
+        app_dir = os.path.join(home_dir,'reminiscent')
+        train_path = os.path.join(app_dir,
+                                             'train.json')
+        preference_path = os.path.join(app_dir,
+                                             'user_preference.json')
+        newmail = get_new_mail(preference_path) # user preference
+        data = json.load(open(train_path))
+        print("Before %d" % len(data))
+        data.update(newmail)
+        print("After %d" % len(data))
 
-    train_file = sys.argv[1] # train.json
-    data = json.load(open(train_file))
-    data.update(newmail)
-
-    with open(train_file, 'w') as outfile:
-        json.dump(data, outfile)
+        with open(train_path, 'w') as outfile:
+            json.dump(data, outfile)
+    except Exception as e:
+        print(e)
 
 if __name__ == '__main__':
     main()

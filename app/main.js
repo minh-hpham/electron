@@ -26,7 +26,7 @@ global.sharedObject = {
     CLIENT_PATH : path.join(__dirname,'assets','credentials', 'client_secret.json'),
     APP_INFO_PATH : TOKEN_DIR + 'appinfo.json',
     TRAIN_FILE : TOKEN_DIR + 'train.json',
-    USER_PREFERENCE_FILE : TOKEN_DIR + 'user_verify.json',
+    USER_PREFERENCE_FILE : TOKEN_DIR + 'user_preference.json',
     MBOX_PATH : null
 }
 
@@ -36,6 +36,7 @@ global.sharedObject = {
  *************************************************************/
 
 let mainWindow = null
+var user_can_close_window = false
 
 const createWindow = () => {
     mainWindow = new BrowserWindow({
@@ -48,19 +49,6 @@ const createWindow = () => {
     var html_file = ""
     if (fs.existsSync(global.sharedObject.TOKEN_PATH)) {
         if (fs.existsSync(global.sharedObject.APP_INFO_PATH) && fs.existsSync(global.sharedObject.TRAIN_FILE)) {
-            if (fs.existsSync(global.sharedObject.USER_PREFERENCE_FILE)) {
-                // update train.json with the current user's preference
-                var execFile = require("child_process").execFile;
-                var USER_PREFERENCE_FILE = global.sharedObject.USER_PREFERENCE_FILE;
-                var TRAIN_FILE = global.sharedObject.TRAIN_FILE;
-                var script = path.join(APP_PATH, "pycalc", "loadmore" + '.py')
-                var pyProc = execFile('python',[script, TRAIN_FILE, USER_PREFERENCE_FILE], (error,stdout,stderr) => {
-                     if (error) {
-                         console.error("Error when run file:",script,stderr);
-                         throw error;
-                     }
-                  });
-            }
             html_file = "email.html";
         } else {
             html_file = "download.html";
@@ -81,11 +69,14 @@ const createWindow = () => {
         mainWindow.show();
         mainWindow.focus();
     })
-//    mainWindow.on('close', (event) => {
-//        event.preventDefault();
-//        event.sender.send('user-close-window');
-//
-//    })
+    mainWindow.on('close', (event) => {
+        if (user_can_close_window == false) {
+            event.preventDefault();
+            mainWindow.hide();
+            event.sender.send('user-close-window');
+        }
+
+    })
     mainWindow.on('closed',function () {
         mainWindow = null
     })
@@ -105,66 +96,26 @@ app.on('activate', () => {
   }
 })
 
+
+
 ipc.on('ready-to-close-window', function (arg) {
-    console.log("end")
+    console.log(arg)
+    if (fs.existsSync(global.sharedObject.USER_PREFERENCE_FILE)) {
+        // update train.json with the current user's preference
+        var execFile = require("child_process").execFile;
+        // arguments
+        var script = path.join(APP_PATH, "pycalc", "loadmore" + '.py')
+        var pyProc = execFile('python',[script], (error,stdout,stderr) => {
+             if (error) {
+                 console.error("Error when run file:",script,stderr);
+                 throw error;
+                 user_can_close_window = true
+                 mainWindow.close()
+             } else {
+                 console.log("Requested new emails and updated training file");
+                 user_can_close_window = true
+                 mainWindow.close()
+             }
+          });
+    }
 })
-/*************************************************************
- * helper functions to modify files
- *************************************************************/
-
-
-/*************************************************************
- * py process
- *************************************************************/
-
-const PY_DIST_FOLDER = 'pycalcdist'
-const PY_FOLDER = 'pycalc'
-const PY_MODULE = 'mailbox_api' // without .py suffix
-
-let pyProc = null
-let pyPort = null
-
-const guessPackaged = () => {
-  const fullPath = path.join(__dirname, PY_DIST_FOLDER)
-  return fs.existsSync(fullPath)
-}
-
-const getScriptPath = () => {
-  if (!guessPackaged()) {
-    return path.join(__dirname, PY_FOLDER, PY_MODULE + '.py')
-  }
-  if (process.platform === 'win32') {
-    return path.join(__dirname, PY_DIST_FOLDER, PY_MODULE, PY_MODULE + '.exe')
-  }
-  return path.join(__dirname, PY_DIST_FOLDER, PY_MODULE, PY_MODULE)
-}
-
-const selectPort = () => {
-  pyPort = 4242
-  return pyPort
-}
-
-const createPyProc = () => {
-  let script = getScriptPath()
-  let port = '' + selectPort()
-
-  if (guessPackaged()) {
-    pyProc = require('child_process').execFile(script, [port])
-  } else {
-    pyProc = require('child_process').spawn('python', [script, port])
-  }
- 
-  if (pyProc != null) {
-    //console.log(pyProc)
-    console.log('child process success on port ' + port)
-  }
-}
-
-const exitPyProc = () => {
-  pyProc.kill()
-  pyProc = null
-  pyPort = null
-}
-
-//app.on('ready', createPyProc)
-//app.on('will-quit', exitPyProc)

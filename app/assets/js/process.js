@@ -33,14 +33,14 @@ const createPyProc = () => {
       var execFile = require("child_process").execFile;
       var mbox_path = electron.remote.getGlobal('sharedObject').MBOX_PATH;
       var save_path = electron.remote.getGlobal('sharedObject').TRAIN_FILE;
-      
+
       pyProc = execFile('python',[script, mbox_path,save_path], (error,stdout,stderr) => {
          if (error) {
              console.error("Error when run file:",script,stderr);
              throw error;
          } else {
              console.log("Train file can be found at",save_path);
-             var html_path = path.join(__dirname,"templates","email"+".html")
+             var html_path = path.join(APP_PATH,"templates","email"+".html")
              location.assign(html_path);
          }
       });

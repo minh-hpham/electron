@@ -1,25 +1,23 @@
 {
-  "name": "pretty-calculator",
+  "name": "Reminiscent Email",
   "version": "1.0.0",
-  "description": "A minimal Electron and Python - based calculator ",
+  "description": "A simple nlp desktop ap ",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/fyears/electron-python-example",
+  "repository": "https://github.com/minh-hpham/electron",
   "keywords": [
     "Electron",
     "Python",
-    "zerorpc",
-    "demo"
+    "Personal Email"
   ],
-  "author": "fyears",
-  "license": "MIT",
+  "author": "Minh Pham",
+  "license": "n/a",
   "dependencies": {
     "electron-version": "^1.1.2",
     "googleapis": "^29.0.0",
-    "jquery": "^3.3.1",
-    "zerorpc": "git+https://github.com/fyears/zerorpc-node.git"
+    "jquery": "^3.3.1"
   },
   "devDependencies": {
     "electron": "1.8.6",
