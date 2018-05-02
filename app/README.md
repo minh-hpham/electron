@@ -60,7 +60,7 @@ node and npm
 
 # for npm
 sudo npm install --unsafe-perm=true --allow-root -r npm_requirements.txt
-
+npm install # will install anything logged in package-log.json
 # for python
 pip install -r python_requirements
 ```
