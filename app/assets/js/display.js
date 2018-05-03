@@ -13,7 +13,9 @@ var likelist = []
 var dislikelist = []
 var count_inbox = 0;
 
-
+// Update the train.json file by removing disliked emails. Update the user's preference by
+// adding senders and subject's keywords to user_preference.json
+// How: Create a child process to run pycalc/modifyemail.py. Arguments: like and dislike lists
 const update_train_file = () => {
     var execFile = require("child_process").execFile;
     var APP_PATH = remote.getGlobal('APP_PATH');
@@ -23,18 +25,25 @@ const update_train_file = () => {
     var pyProc = execFile('python',[script, JSON.stringify(likelist), JSON.stringify(dislikelist)], (error,stdout,stderr) => {
          if (error) {
              console.error("Error when run file:",script,stderr);
+             // notify the main process that the child process is failed
+             // and this window is ready to be closed
              ipc.send('ready-to-close-window',stderr);
              throw error;
          } else {
+             // signal the main process that the child process is succeeded
+             // and this window is ready to be closed
              ipc.send('ready-to-close-window',"SUCCEED");
          }
 
       });
 }
-
+// call function to update train.json when user wants to close the window
 ipc.on('user-close-window', update_train_file);
 
-
+/*
+* Display the emails from train.json or request user to download mbox so 
+* the app can create the train.json
+*/
 function view() {
     fs.readFile(TRAIN_FILE, (err,data) => {
         if (err) {
@@ -55,7 +64,9 @@ function view() {
 
     })
 }
-
+/*
+* add html elements to the email.html file
+*/
 function display_messages(messages) {
     count_inbox = Object.keys(messages).length;
     $('#myBtn').text("Inbox (" + count_inbox + ")");
@@ -64,6 +75,7 @@ function display_messages(messages) {
         var message = messages[message_id];
         var subject = message.subject;
         var sender = message.from+ ' ' + message.date;
+        // add elements to the navigation on the left
         $("#onSideBar").append(
             '<a style="text-decoration: none;color: black;" href="javascript:void(0)" class="w3-bar-item w3-button w3-border-bottom test w3-hover-light-grey" onclick="openMail(\''+message_id+ '\');w3_close();" id="'+"nav-"+message_id+'">'
             + '<div class="w3-container">'
@@ -72,7 +84,7 @@ function display_messages(messages) {
 //            +    '<p>'+message.snippet+'</p>'
             +  '</div>'
             +'</a>');
-
+        // add email componets on the right
         $(".w3-main").append(
             '<div id="'+message_id+'" class="w3-container person">'
             + '<br>'
@@ -85,7 +97,7 @@ function display_messages(messages) {
             +'</div>')
 
     }
-
+    // open the first email
     var openInbox = document.getElementById("myBtn");
     openInbox.click();
     openMail(Object.keys(messages)[0]);
@@ -93,6 +105,10 @@ function display_messages(messages) {
     openTab.click();
 }
 
+/*
+* Called when the UnLike button is clicked. 
+* Remove unliked email from the UI and add unliked email's id to the dislike list
+*/
 function UnLikeMail(message_id) {
     count_inbox = count_inbox - 1;
     $('#myBtn').text("Inbox (" + count_inbox + ")");
@@ -101,25 +117,39 @@ function UnLikeMail(message_id) {
     dislikelist.push(message_id);
 }
 
+/*
+* Called when the Like button is clicked. 
+* Remove unliked email from the UI and add unliked email's id to the dislike list
+*/
 function likeMail(message_id) {
     var a1 = document.getElementById(message_id).getElementsByTagName('a')[0]
+    // If the email is already liked, it can't be liked again
     if (a1.classList.contains("w3-red") == false) {
         likelist.push(message_id);
+        // set the button's color from light grey to red
         a1.className = a1.className.replace(" w3-light-grey"," w3-red");
         document.getElementById(message_id).getElementsByTagName('a')[1].remove();
     }
 }
 
-
+/*
+* open the side navigation on small screens
+*/
 function w3_open() {
     document.getElementById("mySidebar").style.display = "block";
     document.getElementById("myOverlay").style.display = "block";
 }
+/*
+* close the side navigation on small screens
+*/
 function w3_close() {
     document.getElementById("mySidebar").style.display = "none";
     document.getElementById("myOverlay").style.display = "none";
 }
 
+/*
+* display and not-display the list of email if click on inbox
+*/
 function myFunc(id) {
     var x = document.getElementById(id);
     if (x.className.indexOf("w3-show") == -1) {
@@ -132,7 +162,9 @@ function myFunc(id) {
     }
 }
 
-
+/*
+* Show the email's content on the right when click on corresponding snippet on the left
+*/
 function openMail(id) {
     var i;
     var x = document.getElementsByClassName("person");

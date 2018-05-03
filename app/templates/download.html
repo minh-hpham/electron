@@ -46,9 +46,11 @@
             })
             document.getElementById('downloadFile').addEventListener('click',function(event) {
                 event.preventDefault();
+                // open url using default browser instead of this window
                 shell.openExternal(this.href);
             });
-
+            
+            // open a dialog to ask path for mbox file
             function create_app_info() {
                 remote.dialog.showOpenDialog(remote.getCurrentWindow(),{
                         properties : ['openFile'],

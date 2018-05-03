@@ -12,12 +12,14 @@ import base64
 import email
 import os, sys, json, datetime
 
+"""To receive additional arguments from the system. E.g: open url for authorization"""
 try:
     import argparse
     flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
 except ImportError:
     flags = None
 
+"""Recursively search for candidate of email conten"""
 def _search_message_bodies(bodies,part):
     mimeType = part["mimeType"]
     if mimeType.startswith('multipart/'):
@@ -62,7 +64,8 @@ def _search_message_bodies(bodies,part):
                 content_type = header['value'].split(";",1)[0]
                 if "charset=" in header['value']:
                     charset = header['value'].split("charset=",1)[1]
-
+                    
+        """Need to improve: sometimes still fails to decode this body -> this body can't be deode !?"""
         if charset is None:
             try:
                 bodies[content_type] = base64.urlsafe_b64decode(part['body']['data']).decode()
@@ -75,11 +78,12 @@ def _search_message_bodies(bodies,part):
                 print(e)
         return
 
-
+"""Wrapper function for recursive message body searching"""
 def search_message_bodies(mail):
     bodies = dict()
     _search_message_bodies(bodies,mail['payload'])
     return bodies
+
 
 def GetMessage(service, msg_id, user_id='me'):
     """Get a Message with given ID.
@@ -100,7 +104,7 @@ def GetMessage(service, msg_id, user_id='me'):
     except errors.HttpError as error:
         print('An error occurred: %s' % error)
 
-
+"""Get the user's authorization"""
 def get_service():
     SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
@@ -115,20 +119,6 @@ def get_service():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     CLIENT_SECRET_FILE = os.path.join(dir_path, "assets", 'credentials','client_secret.json')
 
-#    store = file.Storage(credential_path)
-#    credentials = store.get()
-#
-#    if not credentials or credentials.invalid:
-#        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
-#        flow.user_agent = "Reminiscent Email"
-#        if flags:
-#             credentials = tools.run_flow(flow, store, flags)
-#        else: # Needed only for compatibility with Python 2.6
-#             credentials = tools.run(flow, store)
-
-
-#    if not os.path.isfile(credentials):
-#        open(credentials, 'w+')
     store = file.Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
@@ -172,23 +162,26 @@ def ListMessagesMatchingQuery(service, user_id, query=''):
     except errors.HttpError as error:
         print('An error occurred: %s' % error)
 
-
+"""Get new emails based on the user's preference"""
 def get_new_mail(file):
     service = get_service()
     data = json.load(open(file))
     # generate query
-    # e.g {subject:Yuki from:Trang} after:2016/04/15 -{subject:Na subject:MSF}
+    # e.g {subject:Yuki from:Nick} after:2016/04/15 -{subject:Na subject:party}
     date = data.get("last_query") # if date is None, do sth
     liked_senders = ' '.join(data.get("like",{}).get("senders",[]))
     liked_subjects = ' '.join(data.get("like",{}).get("subjects",[]))
     disliked_senders = ' '.join(data.get("dislike",{}).get("senders",[]))
     disliked_subjects = ' '.join(data.get("dislike",{}).get("subjects",[]))
 
-    # update last query
+    # update last query for the user's preference file
     data["last_query"] = datetime.datetime.today().strftime('%Y/%m/%d')
     with open(file, 'w') as outfile:
         json.dump(data, outfile)
 
+    """
+    To learn more about query: https://support.google.com/mail/answer/7190?hl=en
+    """
     query = 'after:%s {from:{%s} subject:{%s}} -{from:{%s} subject:{%s}}' % (date, liked_senders, liked_subjects,disliked_senders,disliked_subjects)
 
     # get list of messages with query
@@ -238,9 +231,7 @@ def main():
                                              'user_preference.json')
         newmail = get_new_mail(preference_path) # user preference
         data = json.load(open(train_path))
-        print("Before %d" % len(data))
         data.update(newmail)
-        print("After %d" % len(data))
 
         with open(train_path, 'w') as outfile:
             json.dump(data, outfile)

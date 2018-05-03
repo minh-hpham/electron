@@ -6,13 +6,6 @@ html, body {
     padding: 0;
 }
 
-/*
-body {
-    overflow-x: hidden;
-    -ms-overflow-style: scrollbar;
-    -webkit-app-region: drag;
-}
-*/
 .body{
 	position: absolute;
 	top: -20px;

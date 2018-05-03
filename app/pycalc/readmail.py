@@ -9,7 +9,10 @@ PLAN:
 - 2nd round: extract email from the majority senders 
 '''
 
-'''k is the number of senders you want to extract'''
+'''
+Simple count frequency algorithm.
+k is the number of senders you want to extract
+'''
 def misra_gries(file, k=10, unwanted_list=[]):
     senders = [None] * k
     count_senders = [0] * k
@@ -55,28 +58,6 @@ def decode_email(string):
         out = 'UNKNOWN'
     return out
 
-    
-def get_string_message(message):
-    body = None
-    if message.is_multipart():
-        for part in message.walk():
-            if part.is_multipart():
-                for subpart in part.walk():
-                    if subpart.get_content_type() == 'text/plain':
-                        body = subpart.get_payload(decode=True)
-            elif part.get_content_type() == 'text/plain':
-                body = part.get_payload()
-    elif message.get_content_type() == 'text/plain':
-        body = message.get_payload(decode=True)
-
-    return body
-#decode_email(str(body))
-#    if message.is_multipart():
-#        content = ''.join(part.get_payload(decode=True) for part in message.get_payload())
-#    else:
-#        content = message.get_payload(decode=True)
-#    return content
-
 
 def get_email_from_sender(file, senders):
     data = {}
@@ -87,16 +68,11 @@ def get_email_from_sender(file, senders):
             subject = decode_email(email['subject'])
             
             body = get_message(email)
-#            if "text/plain" in body:
-#                snippet = body["text/plain"][:200]
-#            else:
-#                snippet = ""
             data[labelIds] = {
                 "subject" : subject,
                 "from" : sender,
                 "to" : email['Delivered-To'],
                 "date" : email['Date'],
-#                "snippet" : snippet,
                 "body": body
             }
     return data

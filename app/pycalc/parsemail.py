@@ -1,3 +1,10 @@
+"""
+Functions in this file can be used to parse the mbox file
+"""
+
+
+
+
 #!/bin/env python
 #
 # parsemail.py

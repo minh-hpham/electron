@@ -52,6 +52,8 @@ NodeJS:
 python 3.6
 virtualenv #recommended
 node and npm
+client_secret.json: follow step 1 from this link: https://developers.google.com/gmail/api/quickstart/python to download the file to app/assets/credentials and named it client_secret.json 
+
 ```
 
 ## Update/Additions - install with scripts

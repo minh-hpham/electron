@@ -1,3 +1,10 @@
+/*
+* I DON'T USE THIS FILE ANYWHERE IN THE CODE
+* THIS FILE CONTAINS EXAMPLE OF USING NODEJS TO REQUEST LIST OF MESSAGES
+* OR TO REQUEST MESSAGE 
+*/
+
+
 var $ = require('jQuery');
 
 var fs = require('fs');
@@ -112,6 +119,9 @@ function authorize(credentials, callback) {
   });
 }
 
+/*
+* EXAMPLE OF REQUESTING LIST OF MESSAGES WITH QUERY AND MAXRESULTS
+*/
 function searchSubject(auth) {
     var gmail = google.gmail({
         version: 'v1',
@@ -137,6 +147,9 @@ function searchSubject(auth) {
     })
 }
 
+/*
+* EXAMPLE OF STORING MESSAGE IN A JSON FILE
+*/
 function storeMessages(gmail,messages) {
     try {
         fs.mkdirSync(MESSAGE_DIR);
@@ -159,7 +172,9 @@ function storeMessages(gmail,messages) {
     );
 
 }
-
+/*
+* EXAMPLE OF ASYNCRONOUS SAVING MESSAGE IN JSON FILE
+*/
 function save_message_wrapper(gmail,messages,callback) {
     var count = 0;
     function report() {
@@ -204,7 +219,9 @@ function save_message_wrapper(gmail,messages,callback) {
     };
     get_and_save_message(0);
 }
-
+/*
+* EXAMPLE OF REQUESTING A MESSAGE AND HOW TO EXTRACT ONLY THE text/plain PART OF THE MESSAGE
+*/
 function only_needed_data(response) {
     var headers = response.payload.headers;
     var from; var to; var subject; var date;
@@ -236,7 +253,9 @@ function only_needed_data(response) {
     return result;
 }
 
-
+/*
+* EXAMPLE OF REQUESTING LIST OF LABELS OF THE MESSAGES
+*/
 function listLabels(auth) {
     var gmail = google.gmail('v1');
     gmail.users.labels.list({

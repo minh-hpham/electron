@@ -25,6 +25,10 @@ const getScriptPath = () => {
   return path.join(APP_PATH, PY_DIST_FOLDER, PY_MODULE, PY_MODULE)
 }
 
+/*
+* create a child process to run pycalc/readmail.py to get the mbox file
+* and preprocess it to make train.json file
+*/
 const createPyProc = () => {
   let script = getScriptPath()
 

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/minh-hpham/electron",
+  "repository": "https://github.com/minh-hpham/Reminiscent",
   "keywords": [
     "Electron",
     "Python",

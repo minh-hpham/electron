@@ -11,7 +11,7 @@ const userDataPath = (electron.app || electron.remote.app).getPath('userData');
 
 
 const ipc = electron.ipcMain
-
+// global = can be shared across js files. but only declare in main.js
 
 global.APP_PATH = __dirname
 
@@ -46,8 +46,11 @@ const createWindow = () => {
         height: 600,
         icon : path.join(__dirname, 'assets','icons','png','64x64.png')
     })
+    // Choose which html file to run when user opens the app
     var html_file = ""
+    // if user authorized the app
     if (fs.existsSync(global.sharedObject.TOKEN_PATH)) {
+        // If user downloaded mbox and then had train.json
         if (fs.existsSync(global.sharedObject.APP_INFO_PATH) && fs.existsSync(global.sharedObject.TRAIN_FILE)) {
             html_file = "email.html";
         } else {
@@ -62,14 +65,18 @@ const createWindow = () => {
         protocol: 'file:',
         slashes: true
     }))
-
+    // open the developer window along side the main window
     mainWindow.webContents.openDevTools()
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
         mainWindow.focus();
     })
+    
+    // event happends after user chooses to close main window
     mainWindow.on('close', (event) => {
+        // user can only close when user's preference has been saved
+        // and train.json is updated
         if (user_can_close_window == false) {
             event.preventDefault();
             mainWindow.hide();
@@ -97,7 +104,8 @@ app.on('activate', () => {
 })
 
 
-
+// Now the user's preference is saved. Update train.json with new emails
+// by creating a child process to call pycalc/loadmore.py
 ipc.on('ready-to-close-window', function (arg) {
     console.log(arg)
     if (fs.existsSync(global.sharedObject.USER_PREFERENCE_FILE)) {
